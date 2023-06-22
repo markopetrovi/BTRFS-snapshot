@@ -13,6 +13,7 @@ This tool lists subvolumes present on the system and recursively snapshots each 
 - Still dependent on btrfs-progs for obtaining subvolume list (other things use ioctls directly)
 - Requires root privileges to search filesystem
 - No option to exclude certain subvolumes from snapshotting, yet
+- Generation of snapshots containing more than one subvolume is not atomic (this is currently impossible to fix in userspace)
 ### Compilation
 There are no special build dependencies. Just download the source code and run make & sudo make install and the utility will be installed to /bin/snapshot
 ## Disclaimer
