@@ -19,6 +19,6 @@ There are no special build dependencies. Just download the source code and run m
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License 2.0 for more details.\\
+GNU General Public License 2.0 for more details.\
 
 Use this program at your own risk. I do not hold responsibility for any damage (including data loss) that may be caused by use (correct or incorrect) of this program.
