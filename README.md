@@ -21,4 +21,4 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License 2.0 for more details.
 
-Use this program at your own risk. I do not hold responsibility for any damage (including data loss) that may be caused by use (correct or incorrect) of this program.
+Use this program at your own risk. I do not hold responsibility for any damage (including data loss) that may be caused while using (correctly or incorrectly) this program.
