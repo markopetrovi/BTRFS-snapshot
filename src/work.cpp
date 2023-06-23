@@ -44,92 +44,114 @@ static void Ioctl(int fd, unsigned long request, void *arg)
 	fprintf(stderr, "Unknown ioctl request failed: %i\n%m\n", errno);
 	exit(10);
 }
-void do_snapshot(const vector<string> &list, const string &dest_path, 
-							bool preserveFlags)
+
+static inline string substitutePaths(const string &srcPath, 
+			    const string &srcPrefix, const string &destPrefix)
 {
-	string dest_subvol, subvol_name;
-	string::iterator start;
+	string destPath = srcPath;
+	string::iterator start = destPath.begin();
+
+	return destPath.replace(start, start+srcPrefix.size(), destPrefix);
+}
+
+static void setFlags(const vector<string> &list, const string &dest)
+{
+	int srcfd, destfd;
+	uint64_t flags;
+	string destPath;
+
+	for (int i = 0; i < list.size(); i++) {			
+		srcfd = Open(list[i].c_str(), O_RDONLY | O_DIRECTORY);
+		Ioctl(srcfd, BTRFS_IOC_SUBVOL_GETFLAGS, &flags);
+
+		if ((flags & BTRFS_SUBVOL_RDONLY) == BTRFS_SUBVOL_RDONLY) {
+			destPath = substitutePaths(list[i], list[0], dest);
+			destfd = Open(destPath.c_str(), O_RDONLY | O_DIRECTORY);
+			flags = BTRFS_SUBVOL_RDONLY;
+			Ioctl(destfd, BTRFS_IOC_SUBVOL_SETFLAGS, &flags);
+			close(destfd);
+		}
+		close(srcfd);
+	}
+}
+
+void do_snapshot(const vector<string> &list, const struct program_arguments *parg)
+{
+	string destPath, subvolName;
 	struct btrfs_ioctl_vol_args_v2 args = { 0 };
 	int destfd, srcfd;
-	uint64_t flags;
 
 	for (int i = 0; i < list.size(); i++) {
-		dest_subvol = list[i];
-		start = dest_subvol.begin();
-
-		/*
-		 * For each sub-subvolume replace path to the initial subvolume
-		 * with the destination path.
-		 * list[0] - initial (first to be snapshotted) subvolume (path)
-		 */
-		dest_subvol.replace(start, start + list[0].size(), dest_path);
+		destPath = substitutePaths(list[i], list[0], parg->dest);
 		/*
 		 * Remove empty folder in place of the subvolume list[i] that
 		 * was created during creation of the subvolume list[i-1].
 		 */
 		if (i != 0)
-			check( rmdir(dest_subvol.c_str()) )
+			check( rmdir(destPath.c_str()) )
 
 		/* Separate subvolume name and path to that subvolume */
-		subvol_name = basename(dest_subvol);
-		dest_subvol = dest_subvol.substr(0,
-				      dest_subvol.size()-subvol_name.size());
-		if (dest_subvol == "")
-			dest_subvol = ".";
+		subvolName = basename(destPath);
+		destPath = destPath.substr(0,destPath.size()-subvolName.size());
+		if (destPath == "")
+			destPath = ".";
 
-		destfd = Open(dest_subvol.c_str(), O_RDONLY | O_DIRECTORY);
-		strncpy(args.name, subvol_name.c_str(), BTRFS_SUBVOL_NAME_MAX);
+		destfd = Open(destPath.c_str(), O_RDONLY | O_DIRECTORY);
+		strncpy(args.name, subvolName.c_str(), BTRFS_SUBVOL_NAME_MAX);
 		args.fd = Open(list[i].c_str(), O_RDONLY | O_DIRECTORY);
 
 		Ioctl(destfd, BTRFS_IOC_SNAP_CREATE_V2, &args);
 		close(destfd);
 		close(args.fd);
-		dest_subvol = (dest_subvol == ".") ? "" : dest_subvol;
-		cout << list[i] << " -> " << dest_subvol << subvol_name << endl;
+
+		destPath = (destPath == ".") ? "" : destPath;
+		cout << list[i] << " -> " << destPath << subvolName << endl;
 	}
-	if (preserveFlags)
-		for (int i = 0; i < list.size(); i++) {			
-			srcfd = Open(list[i].c_str(), O_RDONLY | O_DIRECTORY);
-			Ioctl(srcfd, BTRFS_IOC_SUBVOL_GETFLAGS, &flags);
-			if ((flags & BTRFS_SUBVOL_RDONLY) == BTRFS_SUBVOL_RDONLY) {
-				dest_subvol = list[i];
-				start = dest_subvol.begin();
-				dest_subvol.replace(start, start+list[0].size(),
-								     dest_path);
-				destfd = Open(dest_subvol.c_str(), O_RDONLY |
-								   O_DIRECTORY);
-				flags = BTRFS_SUBVOL_RDONLY;
-				Ioctl(destfd, BTRFS_IOC_SUBVOL_SETFLAGS, &flags);
-				close(destfd);
-			}
-			close(srcfd);
-		}
+	if (parg->flags & OPT_PRESERVE_FLAGS)
+		setFlags(list, parg->dest);
 }
 
-void do_delete(const vector<string> &list)
+static vector<string> find_RO_subvolumes(const vector<string> &list,
+							bool forceDelete)
 {
-	uint64_t flags;
 	int srcfd;
+	uint64_t flags;
 	char confirm;
 	vector<string> rdonly_subvols;
-	string subvol_path, subvol_name;
-	struct btrfs_ioctl_vol_args_v2 args = { 0 };
 
 	for (int i = 0; i < list.size(); i++) {			
 		srcfd = Open(list[i].c_str(), O_RDONLY | O_DIRECTORY);
 		Ioctl(srcfd, BTRFS_IOC_SUBVOL_GETFLAGS, &flags);
+
 		if ((flags & BTRFS_SUBVOL_RDONLY) == BTRFS_SUBVOL_RDONLY) {
-			cout << "Subvolume " << list[i] << " is marked as read-only." << endl;
-			cout << "Are you sure you want to delete it? [y/N]  ";
-			cin >> confirm;
-			if (confirm == 'y' || confirm == 'Y')
+			if (forceDelete) {
 				rdonly_subvols.push_back(list[i]);
-			else
-				exit(0);
+			}
+			else {
+				cout << "Subvolume " << list[i] << " is marked as read-only." << endl;
+				cout << "Are you sure you want to delete it? [y/N]  ";
+				cin >> confirm;
+				if (confirm == 'y' || confirm == 'Y')
+					rdonly_subvols.push_back(list[i]);
+				else
+					exit(0);
+			}
 		}
 		close(srcfd);
 	}
-	flags = 0;
+
+	return rdonly_subvols;
+}
+
+void do_delete(const vector<string> &list, const struct program_arguments *parg)
+{
+	uint64_t flags = 0;
+	int srcfd;
+	struct btrfs_ioctl_vol_args_v2 args = { 0 };
+	string subvolPath, subvolName;
+	vector<string> rdonly_subvols = find_RO_subvolumes(list,
+					       parg->flags & OPT_FORCE_DELETE);
+
 	for (int i = 0; i < rdonly_subvols.size(); i++) {
 		srcfd = Open(rdonly_subvols[i].c_str(), O_RDONLY | O_DIRECTORY);
 		Ioctl(srcfd, BTRFS_IOC_SUBVOL_SETFLAGS, &flags);
@@ -138,16 +160,15 @@ void do_delete(const vector<string> &list)
 
 	/* Remove subvolumes starting from the deepest one. */
 	for (int i = list.size() - 1; i >= 0; i--) {
-		subvol_path = list[i];
 		/* Separate subvolume name and path to that subvolume */
-		subvol_name = basename(subvol_path);
-		subvol_path = subvol_path.substr(0,
-				      subvol_path.size()-subvol_name.size());
-		if (subvol_path == "")
-			subvol_path = ".";
+		subvolName = basename(list[i]);
+		subvolPath = list[i].substr(0,list[i].size()-subvolName.size());
+		if (subvolPath == "")
+			subvolPath = ".";
 
-		strncpy(args.name, subvol_name.c_str(), BTRFS_SUBVOL_NAME_MAX);
-		srcfd = Open(subvol_path.c_str(), O_RDONLY | O_DIRECTORY);
+		strncpy(args.name, subvolName.c_str(), BTRFS_SUBVOL_NAME_MAX);
+		srcfd = Open(subvolPath.c_str(), O_RDONLY | O_DIRECTORY);
+
 		Ioctl(srcfd, BTRFS_IOC_SNAP_DESTROY_V2, &args);
 		cout << list[i] << " deleted." << endl;
 		close(srcfd);

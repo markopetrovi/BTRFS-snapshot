@@ -26,13 +26,17 @@ using namespace std;
 #define read_end(pipefd)	(pipefd) ? pipefd[0] : -1
 #define write_end(pipefd)	(pipefd) ? pipefd[1] : -1
 
+/* actions */
 #define SNAPSHOT_CREATE		1
 #define SNAPSHOT_DELETE		2
+/* flags */
+#define OPT_FORCE_DELETE	1
+#define OPT_PRESERVE_FLAGS	2
 
 struct program_arguments {
 	string src, dest;
-	bool preserveFlags;
-	int action;
+	short action;
+	int flags;
 };
 
 extern char** environment;
@@ -50,9 +54,10 @@ extern string read_pipe(int pipefd);
 extern string basename(const string &path);
 
 /* work.cpp */
-extern void do_snapshot(const vector<string> &list, const string &dest_path,
-							   bool preserveFlags);
-extern void do_delete(const vector<string> &list);
+extern void do_snapshot(const vector<string> &list, 
+				const struct program_arguments *parg);
+extern void do_delete(const vector<string> &list,
+				const struct program_arguments *parg);
 
 /* Inline helper functions: */
 static inline void wait_for_exit(int pid)

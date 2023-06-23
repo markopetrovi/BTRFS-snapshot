@@ -12,6 +12,9 @@
 
 using namespace std;
 
+static const string errString = "Wrong usage!\n"
+"Usage: snapshot create/delete [--preserve/-p --force/-f] <source> [dest]";
+
 string basename(const string &path)
 {
 	size_t lastSlash = path.find_last_of("/");
@@ -35,29 +38,51 @@ string read_pipe(int pipefd)
 	return str;
 }
 
+static void checkSubvol(const string &src)
+{
+	int stderr_pipe[2], stdout_redirect[2], pid;
+	string btrfs_err;
+
+	stdout_redirect[1] = Open("/dev/null", O_WRONLY);
+	Pipe(stderr_pipe);
+
+	pid = execute(4, NULL, stdout_redirect, stderr_pipe, "btrfs",
+					"subvolume", "show", src.c_str());
+	wait_for_exit(pid);
+	btrfs_err = read_pipe(read_end(stderr_pipe));
+	close(read_end(stderr_pipe));
+	if(btrfs_err != "") {
+		cerr << "Please provide valid btrfs subvolume as source and run as root" << endl;
+		cerr << btrfs_err << endl;
+		exit(7);
+	}
+}
+
+static short determine_action(const string &arg)
+{
+	if (arg == "create")
+		return SNAPSHOT_CREATE;
+	else if (arg == "delete")
+		return SNAPSHOT_DELETE;
+	else {
+		cerr << errString << endl;
+		exit(6);
+	}
+}
+
 struct program_arguments parse_args(int argc, char* argv[])
 {
 	struct program_arguments parg;
 	bool noMoreOptions = 0;
 	int unknownArg = 0;
-	string errString = "Wrong usage!\n";
-	errString += "Usage: snapshot create/delete [--preserve/-p] <source> [dest]";
 
 	if (argc < 3) {
 		cerr << errString << endl;
 		exit(6);
 	}
 
-	if (string(argv[1]) == "create")
-		parg.action = SNAPSHOT_CREATE;
-	else if (string(argv[1]) == "delete")
-		parg.action = SNAPSHOT_DELETE;
-	else {
-		cerr << errString << endl;
-		exit(6);
-	}
-
-	parg.preserveFlags = 0;
+	parg.action = determine_action(string(argv[1]));
+	parg.flags = 0;
 	for (int i = 2; i < argc; i++) {
 		string arg_i = string(argv[i]);
 		if (arg_i == "--") {
@@ -66,7 +91,11 @@ struct program_arguments parse_args(int argc, char* argv[])
 		}
 		if (arg_i[0] == '-' && !noMoreOptions) {
 			if (arg_i == "--preserve" || arg_i == "-p") {
-				parg.preserveFlags = 1;
+				parg.flags |= OPT_PRESERVE_FLAGS;
+				continue;
+			}
+			if (arg_i == "--force" || arg_i == "-f") {
+				parg.flags |= OPT_FORCE_DELETE;
 				continue;
 			}
 			cerr << errString << endl;
@@ -86,26 +115,12 @@ struct program_arguments parse_args(int argc, char* argv[])
 		exit(6);
 	}
 	
-	if (parg.src == "" || (string(argv[1]) == "create" && parg.dest == "")) {
+	if (parg.src=="" || (parg.action==SNAPSHOT_CREATE && parg.dest=="")) {
 		cerr << errString << endl;
 		exit(6);
-	} 
-
-	int stderr_pipe[2];
-	int stdout_redirect[2];
-	stdout_redirect[1] = Open("/dev/null", O_WRONLY);
-	Pipe(stderr_pipe);
-
-	int pid = execute(4, NULL, stdout_redirect, stderr_pipe, "btrfs",
-					"subvolume", "show", parg.src.c_str());
-	wait_for_exit(pid);
-	string btrfs_err = read_pipe(read_end(stderr_pipe));
-	close(read_end(stderr_pipe));
-	if(btrfs_err != "") {
-		cerr << "Please provide valid btrfs subvolume as source and run as root" << endl;
-		cerr << btrfs_err << endl;
-		exit(7);
 	}
+	
+	checkSubvol(parg.src);
 
 	return parg;
 }

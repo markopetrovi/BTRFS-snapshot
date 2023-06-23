@@ -21,10 +21,10 @@ int main(int argc, char* argv[], char* envp[])
 	traverse(parg.src, list, parg.src);
 
 	if (parg.action == SNAPSHOT_DELETE)
-		do_delete(list);
+		do_delete(list, &parg);
 
 	if (parg.action == SNAPSHOT_CREATE)
-		do_snapshot(list, parg.dest, parg.preserveFlags);
+		do_snapshot(list, &parg);
 
 	return 0;
 }
