@@ -7,7 +7,7 @@ This tool lists subvolumes present on the system and recursively snapshots each 
 - Able to delete subvolumes containing more nested subvolumes in them
 - Able to create snapshots of nested subvolume trees
 - Has an option (--preserve) to copy the read-only flag from original subvolumes to snapshotted subvolumes
-- Able to delete subvolume trees containing read-only subvolumes in a single run (with warnings)
+- Able to delete subvolume trees containing read-only subvolumes in a single run (with warnings or without them if --force is specified)
 - Prints a little help message if the arguments are wrong
 ### Disadvantages
 - Still dependent on btrfs-progs for obtaining subvolume list (other things use ioctls directly)
