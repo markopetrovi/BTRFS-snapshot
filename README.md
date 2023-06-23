@@ -22,7 +22,7 @@ Build dependencies: kernel-headers (for linux/btrfs.h) and gcc
 Compile and install with
 ```make && make install```
 
-Just download the source code and run make & sudo make install and the utility will be installed to /bin/snapshot
+The utility will be installed to /bin/snapshot
 ## Disclaimer
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
