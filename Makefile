@@ -1,6 +1,7 @@
 CC := g++
 HEADER_DIR := ./include
-SRCS := main.cpp btrfs.cpp execute.cpp helper.cpp work.cpp
+SRC_DIR := src
+SRCS := $(wildcard $(SRC_DIR)/*)
 
 # define the C++ object files 
 #
@@ -24,7 +25,7 @@ all: $(OBJS)
 %.o: %.cpp $(HEADER_FILES)
 	$(CC) $(INCLUDES) -c $< -o $@
 clean:
-	rm -rf *.o
+	rm -rf $(SRC_DIR)/*.o
 install:
 	cp snapshot /bin/snapshot
 	chown root /bin/snapshot
