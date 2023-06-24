@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
- *  snapshot/include/main.hpp
+ *  BTRFS-snapshot/include/main.hpp
  *
  *  Copyright (C) 2023 Marko Petrović <petrovicmarko2006@gmail.com>
  */
