@@ -4,8 +4,8 @@
  *
  *  Copyright (C) 2023 Marko Petrović <petrovicmarko2006@gmail.com>
  */
-#ifndef CHECK_H
-#define CHECK_H
+#ifndef MAIN_HPP
+#define MAIN_HPP
 #include <unistd.h>
 #include <fcntl.h>
 #include <cstdio>
