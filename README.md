@@ -15,9 +15,9 @@ This tool lists subvolumes present on the system and recursively snapshots each 
 - No option to exclude certain subvolumes from snapshotting, yet
 - Generation of snapshots containing more than one subvolume is not atomic (this is currently impossible to fix in userspace)
 ### Compilation
-Build dependencies: kernel-headers (for linux/btrfs.h) and gcc
+Build dependencies: kernel-headers (for linux/btrfs.h) and g++
 
-```sudo dnf install kernel-headers gcc```
+```sudo dnf install kernel-headers g++```
 
 Compile and install with
 ```make && make install```
