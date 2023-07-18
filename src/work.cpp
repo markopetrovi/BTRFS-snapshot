@@ -105,7 +105,7 @@ void do_snapshot(const vector<string> &list, const struct program_arguments *par
 		close(args.fd);
 
 		destPath = (destPath == ".") ? "" : destPath;
-		cout << list[i] << " -> " << destPath << subvolName << endl;
+		cout << "\"" << list[i] << "\" -> \"" << destPath << subvolName << "\"" << endl;
 	}
 	if (parg->flags & OPT_PRESERVE_FLAGS)
 		setFlags(list, parg->dest);
@@ -128,7 +128,7 @@ static vector<string> find_RO_subvolumes(const vector<string> &list,
 				rdonly_subvols.push_back(list[i]);
 			}
 			else {
-				cout << "Subvolume " << list[i] << " is marked as read-only." << endl;
+				cout << "Subvolume \"" << list[i] << "\" is marked as read-only." << endl;
 				cout << "Are you sure you want to delete it? [y/N]  ";
 				cin >> confirm;
 				if (confirm == 'y' || confirm == 'Y')
@@ -170,7 +170,7 @@ void do_delete(const vector<string> &list, const struct program_arguments *parg)
 		srcfd = Open(subvolPath.c_str(), O_RDONLY | O_DIRECTORY);
 
 		Ioctl(srcfd, BTRFS_IOC_SNAP_DESTROY_V2, &args);
-		cout << list[i] << " deleted." << endl;
+		cout << "\"" << list[i] << "\" deleted." << endl;
 		close(srcfd);
 	}
 }
