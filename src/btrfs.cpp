@@ -12,6 +12,18 @@
 
 using namespace std;
 
+static size_t find_last_occurrence(const std::string& str, const std::string& substr) {
+	size_t pos = std::string::npos;
+	size_t offset = 0;
+
+	while ((offset = str.find(substr, offset)) != std::string::npos) {
+		pos = offset;
+		offset++;
+	}
+
+	return pos;
+}
+
 /* Append the list of all subvolumes under subvolpath to the vector list */
 void traverse(const string &current_subvolpath, vector<string> &list,
 						const string &initial_subvolpath)
@@ -56,7 +68,7 @@ void traverse(const string &current_subvolpath, vector<string> &list,
 		*
 		* Motive: Get rid of the leading /root in the string token.
 		*/
-		size_t res_str_i = token.find(initial_subvolname);
+		size_t res_str_i = find_last_occurrence(token, initial_subvolname);
 		if (res_str_i != string::npos) {
 			res_str_i += initial_subvolname.size();
 
