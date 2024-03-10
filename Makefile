@@ -26,6 +26,7 @@ all: $(OBJS)
 	$(CC) $(INCLUDES) -c $< -o $@
 clean:
 	rm -rf $(SRC_DIR)/*.o
+	rm snapshot
 install:
 	cp snapshot /bin/snapshot
 	chown root /bin/snapshot
